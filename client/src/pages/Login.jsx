@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import API from '../api/axios';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Login = () => {
@@ -14,7 +14,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', formData);
+      const response = await API.post('/auth/login', formData);
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       // Route based on role
@@ -23,7 +23,7 @@ const Login = () => {
       } else if (response.data.user.role === 'Vendor') {
         navigate('/vendor');
       } else {
-        navigate('/user');
+        navigate('/');
       }
       
       // Update app state for navigation via page reload since App.jsx reads from localStorage on mount.
