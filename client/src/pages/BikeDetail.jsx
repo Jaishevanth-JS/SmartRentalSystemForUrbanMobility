@@ -68,7 +68,7 @@ const BikeDetail = () => {
 
   const handleBookNow = () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       if (!token) {
         showToast('Please login to book a bike', 'info');
         navigate('/login');
@@ -143,6 +143,7 @@ const BikeDetail = () => {
                   src={bike.images?.[selectedImg] || 'https://via.placeholder.com/800?text=Bike'}
                   alt={bike.model}
                   className="w-full h-full object-cover"
+                  onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/800?text=No+Image'; }}
                 />
               </div>
               {bike.images?.length > 1 && (
@@ -150,7 +151,8 @@ const BikeDetail = () => {
                   {bike.images.map((img, idx) => (
                     <button key={idx} onClick={() => setSelectedImg(idx)}
                       className={`flex-shrink-0 h-20 w-32 rounded-xl overflow-hidden border-2 transition ${selectedImg === idx ? 'border-[#8b5e3c]' : 'border-transparent opacity-70 hover:opacity-100'}`}>
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <img src={img} alt="" className="w-full h-full object-cover" 
+                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/150?text=No+Image'; }} />
                     </button>
                   ))}
                 </div>

@@ -15,8 +15,8 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await API.post('/auth/login', formData);
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      sessionStorage.setItem('token', response.data.token);
+      sessionStorage.setItem('user', JSON.stringify(response.data.user));
       // Route based on role
       if (response.data.user.role === 'Admin') {
         navigate('/admin');
@@ -26,7 +26,7 @@ const Login = () => {
         navigate('/');
       }
       
-      // Update app state for navigation via page reload since App.jsx reads from localStorage on mount.
+      // Update app state for navigation via page reload since App.jsx reads from sessionStorage on mount.
       window.location.reload();
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');

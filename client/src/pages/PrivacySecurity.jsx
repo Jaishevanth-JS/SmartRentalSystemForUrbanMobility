@@ -19,7 +19,7 @@ const Toast = ({ msg, type, onClose }) => {
 
 const ProfileSidebar = ({ active }) => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = JSON.parse(sessionStorage.getItem('user') || '{}');
   const items = [
     { icon: <User className="h-5 w-5" />, label: 'Account Details', path: '/profile' },
     { icon: <Bike className="h-5 w-5" />, label: 'My Bookings', path: '/my-bookings' },
@@ -91,7 +91,7 @@ const PrivacySecurity = () => {
     }
     try {
       await API.delete('/auth/delete-account');
-      localStorage.clear();
+      sessionStorage.clear();
       navigate('/');
     } catch (err) {
       showToast(err.response?.data?.message || 'Error deleting account', 'error');

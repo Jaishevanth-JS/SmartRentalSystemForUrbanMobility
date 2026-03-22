@@ -9,33 +9,47 @@ import Spinner from '../components/Spinner';
 import { CreditCard, CheckCircle, ShieldCheck, MapPin, Calendar, Info } from 'lucide-react';
 import { toast } from 'react-toastify';
 
-// Use a placeholder public key - User should replace this
-const stripePromise = loadStripe('pk_test_51TD2aaGjSxMQ6P1YEKB2Qtl8mzay8AX4cnL52WPm3xSrZZ8jKPnkZhNC16IYwQ0AxRoVNAVVlYdxujK0JRHGqRUU00QNTRbmVS');
+// Load Stripe from .env variable
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 const CheckoutForm = ({ bike, dates, totalAmount }) => {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [errorStatus, setErrorStatus] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!stripe || !elements) return;
 
     setLoading(true);
+    setErrorStatus(null);
+    
+    // Timeout promise (30 seconds)
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Payment timed out. Please check your connection.')), 30000)
+    );
+
     try {
       // 1. Create Payment Intent
-      const { data: { clientSecret } } = await API.post('/payment/create-payment-intent', { totalAmount });
-
-      // 2. Confirm Payment
-      const result = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: elements.getElement(CardElement),
-        },
-      });
+      const result = await Promise.race([
+        (async () => {
+           const { data } = await API.post('/payment/create-payment-intent', { totalAmount });
+           
+           // 2. Confirm Payment
+           return await stripe.confirmCardPayment(data.clientSecret, {
+             payment_method: {
+               card: elements.getElement(CardElement),
+             },
+           });
+        })(),
+        timeoutPromise
+      ]);
 
       if (result.error) {
         toast.error(result.error.message);
+        setErrorStatus('Payment failed. Please try again');
       } else {
         if (result.paymentIntent.status === 'succeeded') {
           // 3. Create Booking
@@ -51,7 +65,10 @@ const CheckoutForm = ({ bike, dates, totalAmount }) => {
         }
       }
     } catch (err) {
-      toast.error('Payment failed: ' + (err.response?.data?.message || err.message));
+      console.error('Payment Flow Error:', err);
+      const msg = err.message || 'Payment processing failed';
+      toast.error(msg);
+      setErrorStatus('Payment failed. Please try again');
     } finally {
       setLoading(false);
     }
@@ -87,7 +104,7 @@ const CheckoutForm = ({ bike, dates, totalAmount }) => {
         disabled={!stripe || loading}
         className="w-full btn-brown py-4 text-lg font-bold flex items-center justify-center shadow-lg transform active:scale-95 transition-all"
       >
-        {loading ? <Spinner /> : (
+        {loading ? <Spinner /> : errorStatus ? errorStatus : (
           <>
             <CreditCard className="h-5 w-5 mr-2" />
             Proceed & Pay Now

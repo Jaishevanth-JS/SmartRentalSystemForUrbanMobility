@@ -4,6 +4,13 @@ const Booking = require('../models/Booking');
 const Bike = require('../models/Bike');
 const auth = require('../middleware/auth');
 
+const vendorOnly = (req, res, next) => {
+  if (req.user.role !== 'Vendor') {
+    return res.status(403).json({ message: 'Access denied. Vendors only.' });
+  }
+  next();
+};
+
 // POST / create new booking
 router.post('/', auth, async (req, res) => {
   try {
@@ -58,6 +65,40 @@ router.get('/my-bookings', auth, async (req, res) => {
     res.json(bookings);
   } catch (error) {
     res.status(500).json({ message: 'Server error: ' + error.message });
+  }
+});
+
+// GET /vendor/bookings
+router.get('/vendor/bookings', auth, vendorOnly, async (req, res) => {
+  try {
+    const bikes = await Bike.find({ ownerId: req.user.id }).select('_id');
+    const bikeIds = bikes.map(b => b._id);
+    const bookings = await Booking.find({ bikeId: { $in: bikeIds } })
+      .populate('bikeId', 'brand model images city')
+      .populate('userId', 'name email phone')
+      .sort({ createdAt: -1 });
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// PUT /:id/status (Accept or reject booking)
+router.put('/:id/status', auth, vendorOnly, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const booking = await Booking.findById(req.params.id).populate('bikeId');
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    
+    if (booking.bikeId.ownerId.toString() !== req.user.id) {
+       return res.status(403).json({ message: 'Unauthorized' });
+    }
+    
+    booking.bookingStatus = status;
+    await booking.save();
+    res.json({ message: 'Booking status updated successfully', booking });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 

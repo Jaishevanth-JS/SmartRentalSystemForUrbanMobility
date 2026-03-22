@@ -6,7 +6,7 @@ import { User, Bike, CheckCircle, Clock, CreditCard, Lock } from 'lucide-react';
 
 const ProfileSidebar = ({ active }) => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = JSON.parse(sessionStorage.getItem('user') || '{}');
   const items = [
     { icon: <User className="h-5 w-5" />, label: 'Account Details', path: '/profile' },
     { icon: <Bike className="h-5 w-5" />, label: 'My Bookings', path: '/my-bookings' },

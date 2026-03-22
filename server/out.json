@@ -1,0 +1,26 @@
+[
+  {
+    "approvalStatus": "Pending",
+    "_id": "69be397d08a4bb2fba2314e3",
+    "title": "Royal Enfield",
+    "isApproved": false
+  },
+  {
+    "approvalStatus": "Pending",
+    "_id": "69be3bfe08a4bb2fba231520",
+    "title": "Pulsar",
+    "isApproved": false
+  },
+  {
+    "_id": "69be3dfc08a4bb2fba2315be",
+    "title": "R15",
+    "isApproved": true,
+    "approvalStatus": "Approved"
+  },
+  {
+    "_id": "69be3e9208a4bb2fba2315c2",
+    "title": "Ather",
+    "isApproved": true,
+    "approvalStatus": "Approved"
+  }
+]

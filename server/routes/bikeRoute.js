@@ -3,6 +3,14 @@ const router = express.Router();
 const Bike = require('../models/Bike');
 const Booking = require('../models/Booking');
 const Review = require('../models/Review');
+const auth = require('../middleware/auth');
+
+const vendorOnly = (req, res, next) => {
+  if (req.user.role !== 'Vendor') {
+    return res.status(403).json({ message: 'Access denied. Vendors only.' });
+  }
+  next();
+};
 
 // GET / with filters
 router.get('/', async (req, res) => {
@@ -54,6 +62,89 @@ router.get('/', async (req, res) => {
     res.json(enrichedBikes);
   } catch (error) {
     res.status(500).json({ message: 'Server error: ' + error.message });
+  }
+});
+
+// POST / (add new bike - vendor only)
+router.post('/', auth, vendorOnly, async (req, res) => {
+  try {
+    const {
+      title, brand, model, bikeType, year, cc, fuelType, mileage, color,
+      licensePlate, description, pricePerHour, pricePerDay,
+      city, state, address, availableFrom, availableTo, images
+    } = req.body;
+
+    const bike = new Bike({
+      ownerId: req.user.id,
+      title, brand, model, bikeType,
+      year: Number(year), cc: Number(cc),
+      fuelType, mileage, color, licensePlate, description,
+      pricePerHour: Number(pricePerHour),
+      pricePerDay:  Number(pricePerDay),
+      city, state, address, availableFrom, availableTo,
+      images: images || [],
+      isApproved: false,
+      isAvailable: true,
+    });
+
+    await bike.save();
+    res.status(201).json({ message: 'Bike submitted for admin approval.', bike });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /vendor/my-bikes (get vendor's own bikes)
+router.get('/vendor/my-bikes', auth, vendorOnly, async (req, res) => {
+  try {
+    const bikes = await Bike.find({ ownerId: req.user.id }).sort({ createdAt: -1 });
+    res.json(bikes);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// PUT /:id (update bike)
+router.put('/:id', auth, vendorOnly, async (req, res) => {
+  try {
+    const bike = await Bike.findOne({ _id: req.params.id, ownerId: req.user.id });
+    if (!bike) return res.status(404).json({ message: 'Bike not found or not yours' });
+
+    const fields = [
+      'title','brand','model','bikeType','year','cc','fuelType','mileage','color',
+      'licensePlate','description','pricePerHour','pricePerDay',
+      'city','state','address','availableFrom','availableTo','images','isAvailable'
+    ];
+    fields.forEach(f => { if (req.body[f] !== undefined) bike[f] = req.body[f]; });
+
+    await bike.save();
+    res.json({ message: 'Bike updated successfully', bike });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// DELETE /:id (delete bike)
+router.delete('/:id', auth, vendorOnly, async (req, res) => {
+  try {
+    const bike = await Bike.findOneAndDelete({ _id: req.params.id, ownerId: req.user.id });
+    if (!bike) return res.status(404).json({ message: 'Bike not found or not yours' });
+    res.json({ message: 'Bike deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// PATCH /:id/toggle (toggle availability)
+router.patch('/:id/toggle', auth, vendorOnly, async (req, res) => {
+  try {
+    const bike = await Bike.findOne({ _id: req.params.id, ownerId: req.user.id });
+    if (!bike) return res.status(404).json({ message: 'Bike not found or not yours' });
+    bike.isAvailable = !bike.isAvailable;
+    await bike.save();
+    res.json({ message: 'Availability toggled', isAvailable: bike.isAvailable });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 

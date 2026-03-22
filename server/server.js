@@ -7,6 +7,7 @@ const bikeRoute = require('./routes/bikeRoute');
 const bookingRoute = require('./routes/bookingRoute');
 const reviewRoute = require('./routes/reviewRoute');
 const paymentRoute = require('./routes/paymentRoute');
+const vendorRoute = require('./routes/vendorRoute');
 
 const app = express();
 
@@ -24,6 +25,9 @@ app.use('/api/bikes', bikeRoute);
 app.use('/api/bookings', bookingRoute);
 app.use('/api/reviews', reviewRoute);
 app.use('/api/payment', paymentRoute);
+app.use('/api/vendor', vendorRoute);
+const adminRoute = require('./routes/adminRoute');
+app.use('/api/admin', adminRoute);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

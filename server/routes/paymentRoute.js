@@ -9,8 +9,10 @@ router.post('/create-payment-intent', auth, async (req, res) => {
   try {
     const { totalAmount } = req.body;
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: totalAmount * 100, // amount in cents
-      currency: 'usd',
+      amount: Math.round(totalAmount * 100), // amount in cents/paisa
+      currency: 'inr',
+      description: 'Bike Rental Payment',
+      metadata: { integration_check: 'accept_a_payment' },
     });
 
     res.json({ clientSecret: paymentIntent.client_secret });

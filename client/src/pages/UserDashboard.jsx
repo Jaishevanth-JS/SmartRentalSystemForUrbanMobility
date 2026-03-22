@@ -11,7 +11,7 @@ const UserDashboard = () => {
     const [stats, setStats] = useState({ active: 0, completed: 0, cancelled: 0 });
     const [recentBookings, setRecentBookings] = useState([]);
     const [loading, setLoading] = useState(true);
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
 
     useEffect(() => {
         const fetchDashboardData = async () => {

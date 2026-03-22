@@ -102,7 +102,7 @@ const Profile = () => {
       });
       showToast('Details saved successfully!', 'success');
       setOriginalData({ ...formData });
-      localStorage.setItem('user', JSON.stringify(res.data.user));
+      sessionStorage.setItem('user', JSON.stringify(res.data.user));
     } catch (err) {
       showToast(err.response?.data?.message || 'Error updating profile', 'error');
     } finally {

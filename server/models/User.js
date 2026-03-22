@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['User', 'Vendor', 'Admin'], default: 'User' },
   phone: { type: String },
   profileImage: { type: String },
+  isBlocked: { type: Boolean, default: false },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
