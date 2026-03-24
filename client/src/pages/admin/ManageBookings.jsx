@@ -38,7 +38,12 @@ const ManageBookings = () => {
     return matchesSearch && matchesFilter;
   });
 
-  const fmt = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const fmt = (d) => {
+    if (!d) return '—';
+    const date = new Date(d);
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + 
+           date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
 
   return (
     <AdminLayout title="Manage Bookings">

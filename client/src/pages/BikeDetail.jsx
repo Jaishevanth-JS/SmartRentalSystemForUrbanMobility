@@ -4,7 +4,8 @@ import API from '../api/axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Spinner from '../components/Spinner';
-import { MapPin, Star, Calendar, ShieldCheck, CheckCircle, Info, Zap, Fuel, Activity, Palette, AlertCircle } from 'lucide-react';
+import DateTimePicker from '../components/DateTimePicker';
+import { MapPin, Star, Calendar, ShieldCheck, CheckCircle, Info, Zap, Fuel, Activity, Palette, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 /* ── inline toast (no library) ── */
 const Toast = ({ msg, type, onClose }) => {
@@ -53,8 +54,13 @@ const BikeDetail = () => {
     if (!bookingDates.startDate || !bookingDates.endDate || !data.bike) return 0;
     const start = new Date(bookingDates.startDate);
     const end = new Date(bookingDates.endDate);
-    if (end <= start) return 0;
+    if (end < start) return 0;
     const diffTime = Math.abs(end - start);
+    // If less than 24h, use hour price if available, else 1 day price
+    if (diffTime < (24 * 60 * 60 * 1000)) {
+        const diffHours = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60)));
+        return diffHours * (data.bike.pricePerHour || (data.bike.pricePerDay / 24));
+    }
     const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
     return diffDays * data.bike.pricePerDay;
   };
@@ -90,8 +96,8 @@ const BikeDetail = () => {
       if (bookingDates.startDate && bookingDates.endDate) {
         const start = new Date(bookingDates.startDate);
         const end = new Date(bookingDates.endDate);
-        if (end <= start) {
-          errors.endDate = 'End date must be after start date';
+        if (end < start) {
+          errors.endDate = 'End date/time must be after or equal to start date/time';
           hasError = true;
         }
       }
@@ -138,13 +144,36 @@ const BikeDetail = () => {
           <div className="lg:col-span-8 space-y-10">
             {/* Gallery */}
             <div className="space-y-4">
-              <div className="h-[400px] md:h-[500px] rounded-3xl overflow-hidden border border-[#e2d5c3] bg-white shadow-sm transition hover:shadow-md">
+              <div className="h-[400px] md:h-[500px] rounded-3xl overflow-hidden border border-[#e2d5c3] bg-white shadow-sm transition hover:shadow-md relative group">
                 <img
                   src={bike.images?.[selectedImg] || 'https://via.placeholder.com/800?text=Bike'}
                   alt={bike.model}
                   className="w-full h-full object-cover"
                   onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/800?text=No+Image'; }}
                 />
+                {/* Prev/Next Arrows */}
+                {bike.images?.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setSelectedImg(prev => (prev - 1 + bike.images.length) % bike.images.length)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                    >
+                      <ChevronLeft className="h-5 w-5 text-[#4a3224]" />
+                    </button>
+                    <button
+                      onClick={() => setSelectedImg(prev => (prev + 1) % bike.images.length)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                    >
+                      <ChevronRight className="h-5 w-5 text-[#4a3224]" />
+                    </button>
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {bike.images.map((_, idx) => (
+                        <button key={idx} onClick={() => setSelectedImg(idx)}
+                          className={`h-2 rounded-full transition-all ${selectedImg === idx ? 'w-6 bg-white' : 'w-2 bg-white/50'}`} />
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
               {bike.images?.length > 1 && (
                 <div className="flex gap-4 overflow-x-auto pb-2">
@@ -244,55 +273,51 @@ const BikeDetail = () => {
           <div className="lg:col-span-4 space-y-6">
             {/* Booking Form */}
             <div className="bg-white rounded-3xl p-8 border border-[#e2d5c3] shadow-lg sticky top-24">
-              <h3 className="text-xl font-bold text-[#4a3224] mb-6">Booking Details</h3>
+              <h3 className="text-xl font-bold text-[#4a3224] mb-4">Booking Details</h3>
+              
+              {/* Show availability window */}
+              {(bike.availableFrom || bike.availableTo) && (
+                <div className="bg-[#f0ede6] p-3 rounded-xl mb-5 text-xs">
+                  <p className="font-bold text-[#4a3224] mb-1 flex items-center gap-1"><Calendar className="h-3 w-3" /> Availability Window</p>
+                  <p className="text-gray-600">
+                    {bike.availableFrom ? new Date(bike.availableFrom).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'Anytime'}
+                    {' → '}
+                    {bike.availableTo ? new Date(bike.availableTo).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'Anytime'}
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-5">
 
-                {/* Start Date */}
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Start Date</label>
-                  <input
-                    type="date"
-                    min={today}
-                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:border-[#8b5e3c] bg-[#fdfaf6] ${dateErrors.startDate ? 'border-red-400' : 'border-[#e2d5c3]'}`}
-                    value={bookingDates.startDate}
-                    onChange={(e) => handleDateChange('startDate', e.target.value)}
-                  />
-                  {dateErrors.startDate && (
-                    <p className="text-red-500 text-xs font-bold mt-1 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" /> {dateErrors.startDate}
-                    </p>
-                  )}
-                </div>
+                <DateTimePicker 
+                  label="Start Date & Time"
+                  value={bookingDates.startDate}
+                  minDate={today}
+                  onChange={(v) => handleDateChange('startDate', v)}
+                  error={dateErrors.startDate}
+                />
 
-                {/* End Date */}
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">End Date</label>
-                  <input
-                    type="date"
-                    min={bookingDates.startDate || today}
-                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:border-[#8b5e3c] bg-[#fdfaf6] ${dateErrors.endDate ? 'border-red-400' : 'border-[#e2d5c3]'}`}
-                    value={bookingDates.endDate}
-                    onChange={(e) => handleDateChange('endDate', e.target.value)}
-                  />
-                  {dateErrors.endDate && (
-                    <p className="text-red-500 text-xs font-bold mt-1 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" /> {dateErrors.endDate}
-                    </p>
-                  )}
-                </div>
+                <DateTimePicker 
+                  label="End Date & Time"
+                  value={bookingDates.endDate}
+                  minDate={bookingDates.startDate ? bookingDates.startDate.split(' ')[0] : today}
+                  onChange={(v) => handleDateChange('endDate', v)}
+                  error={dateErrors.endDate || (bookingDates.startDate && bookingDates.endDate && new Date(bookingDates.endDate) < new Date(bookingDates.startDate) ? 'End cannot be before start' : '')}
+                />
 
                 {/* Price Summary */}
                 {total > 0 && (
                   <div className="bg-[#f0ede6] p-4 rounded-2xl space-y-2 border border-[#e2d5c3]/50">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">
-                        ₹{bike.pricePerDay} × {Math.max(1, Math.ceil(Math.abs(new Date(bookingDates.endDate) - new Date(bookingDates.startDate)) / (1000 * 60 * 60 * 24)))} days
+                        Total Rental Duration
                       </span>
-                      <span className="font-bold text-[#4a3224]">₹{total}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Service Fee</span>
-                      <span className="font-bold text-[#4a3224]">₹0</span>
+                      <span className="font-bold text-[#4a3224]">
+                        {Math.abs(new Date(bookingDates.endDate) - new Date(bookingDates.startDate)) < 86400000 
+                          ? `${Math.max(1, Math.ceil(Math.abs(new Date(bookingDates.endDate) - new Date(bookingDates.startDate)) / (1000 * 60 * 60)))} hours`
+                          : `${Math.max(1, Math.ceil(Math.abs(new Date(bookingDates.endDate) - new Date(bookingDates.startDate)) / (1000 * 60 * 60 * 24)))} days`
+                        }
+                      </span>
                     </div>
                     <div className="pt-2 border-t border-gray-200 flex justify-between items-center">
                       <span className="font-bold text-[#4a3224]">Total Amount</span>

@@ -6,11 +6,12 @@ const ProtectedRoute = ({ children, role }) => {
   const user = JSON.parse(sessionStorage.getItem('user') || '{}');
 
   if (!token) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
 
+  // If a specific role is required, enforce it
   if (role && user.role?.toLowerCase() !== role.toLowerCase()) {
-    return <Navigate to="/" />;
+    return <Navigate to="/" replace />;
   }
 
   return children;

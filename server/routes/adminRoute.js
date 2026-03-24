@@ -12,9 +12,35 @@ const adminOnly = (req, res, next) => {
   next();
 };
 
+// Auto-sync all booking statuses based on current date/time
+const syncAllBookingStatuses = async () => {
+  const now = new Date();
+
+  // upcoming -> active: startDate has passed but endDate hasn't
+  await Booking.updateMany(
+    { bookingStatus: 'upcoming', startDate: { $lte: now }, endDate: { $gt: now } },
+    { $set: { bookingStatus: 'active' } }
+  );
+
+  // upcoming -> completed: both startDate and endDate have passed
+  await Booking.updateMany(
+    { bookingStatus: 'upcoming', endDate: { $lte: now } },
+    { $set: { bookingStatus: 'completed' } }
+  );
+
+  // active -> completed: endDate has passed
+  await Booking.updateMany(
+    { bookingStatus: 'active', endDate: { $lte: now } },
+    { $set: { bookingStatus: 'completed' } }
+  );
+};
+
 // GET /api/admin/stats
 router.get('/stats', auth, adminOnly, async (req, res) => {
   try {
+    // Sync all booking statuses before computing stats
+    await syncAllBookingStatuses();
+
     const totalUsers = await User.countDocuments({ role: 'User' });
     const totalVendors = await User.countDocuments({ role: 'Vendor' });
     const approvedBikes = await Bike.countDocuments({ approvalStatus: 'Approved' });
@@ -101,6 +127,9 @@ router.put('/bikes/:id/approve', auth, adminOnly, async (req, res) => {
 // GET /api/admin/bookings
 router.get('/bookings', auth, adminOnly, async (req, res) => {
   try {
+    // Sync all booking statuses before returning
+    await syncAllBookingStatuses();
+
     const bookings = await Booking.find()
       .populate('bikeId', 'brand model images')
       .populate('userId', 'name email')
@@ -112,3 +141,4 @@ router.get('/bookings', auth, adminOnly, async (req, res) => {
 });
 
 module.exports = router;
+

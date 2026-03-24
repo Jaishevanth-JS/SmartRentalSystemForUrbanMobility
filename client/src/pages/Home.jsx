@@ -5,13 +5,15 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import BikeCard from '../components/BikeCard';
 import Spinner from '../components/Spinner';
-import { Search, Calendar, ShieldCheck, MapPin } from 'lucide-react';
+import { Search, Calendar, ShieldCheck, MapPin, Star } from 'lucide-react';
 
 const Home = () => {
   const [featuredBikes, setFeaturedBikes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useState({ city: '', startDate: '', endDate: '' });
+  const [topReviews, setTopReviews] = useState([]);
   const navigate = useNavigate();
+  const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     const fetchBikes = async () => {
@@ -25,7 +27,14 @@ const Home = () => {
         setLoading(false);
       }
     };
+    const fetchReviews = async () => {
+      try {
+        const res = await API.get('/reviews/recent');
+        setTopReviews(res.data.slice(0, 3));
+      } catch (err) { /* reviews are optional */ }
+    };
     fetchBikes();
+    fetchReviews();
   }, []);
 
   const handleSearch = (e) => {
@@ -67,6 +76,7 @@ const Home = () => {
                   <Calendar className="absolute left-3 top-3 h-5 w-5 text-[#8b5e3c]" />
                   <input 
                     type="date" 
+                    min={today}
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-transparent bg-gray-50 focus:bg-white focus:border-[#8b5e3c] outline-none transition"
                     value={searchParams.startDate}
                     onChange={(e) => setSearchParams({...searchParams, startDate: e.target.value})}
@@ -76,6 +86,7 @@ const Home = () => {
                   <Calendar className="absolute left-3 top-3 h-5 w-5 text-[#8b5e3c]" />
                   <input 
                     type="date" 
+                    min={searchParams.startDate || today}
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-transparent bg-gray-50 focus:bg-white focus:border-[#8b5e3c] outline-none transition"
                     value={searchParams.endDate}
                     onChange={(e) => setSearchParams({...searchParams, endDate: e.target.value})}
@@ -194,20 +205,26 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 bg-white">
+      {topReviews.length > 0 && (
+      <section className="py-20 bg-white animate-fadeIn">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center text-[#4a3224] mb-16">What Our Riders Say</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="card-brown p-8">
-                <div className="flex text-yellow-500 mb-4 font-bold">★★★★★</div>
-                <p className="text-gray-600 mb-6 italic">"The process was incredibly smooth. The bike was in perfect condition and the owner was very helpful. Will definitely book again!"</p>
+            {topReviews.map((rev, i) => (
+              <div key={rev._id || i} className="card-brown p-8">
+                <div className="flex text-yellow-500 mb-4">
+                  {[...Array(5)].map((_, s) => (
+                    <Star key={s} className={`h-4 w-4 ${s < rev.rating ? 'fill-current' : 'text-gray-200'}`} />
+                  ))}
+                </div>
+                <p className="text-gray-600 mb-6 italic">"{rev.comment}"</p>
                 <div className="flex items-center">
-                  <div className="h-10 w-10 rounded-full bg-[#8b5e3c] mr-3"></div>
+                  <div className="h-10 w-10 rounded-full bg-[#8b5e3c] flex items-center justify-center text-white font-bold flex-shrink-0 mr-3">
+                    {rev.userId?.name?.[0]?.toUpperCase() || '?'}
+                  </div>
                   <div>
-                    <h4 className="font-bold text-[#4a3224]">Rider Name</h4>
-                    <p className="text-xs text-gray-500">Loyal Customer</p>
+                    <h4 className="font-bold text-[#4a3224]">{rev.userId?.name || 'Rider'}</h4>
+                    <p className="text-xs text-gray-500">Verified Rider</p>
                   </div>
                 </div>
               </div>
@@ -215,6 +232,7 @@ const Home = () => {
           </div>
         </div>
       </section>
+      )}
 
       {/* CTA */}
       <section className="py-20 bg-[#8b5e3c] text-white">

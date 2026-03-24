@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
 import VendorLayout from '../../components/VendorLayout';
+import DateTimePicker from '../../components/DateTimePicker';
 import { CheckCircle, Upload, AlertCircle } from 'lucide-react';
 
 const BIKE_TYPES = ['Scooter','Sports','Cruiser','Commuter','Adventure','Electric','Classic','Other'];
@@ -57,9 +58,13 @@ const AddBike = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form.availableFrom && form.availableTo && form.availableTo <= form.availableFrom) {
-      showToast('End date must be after start date', 'error');
-      return;
+    if (form.availableFrom && form.availableTo) {
+      const start = new Date(form.availableFrom);
+      const end   = new Date(form.availableTo);
+      if (end < start) {
+        showToast('End date/time must be after start date/time', 'error');
+        return;
+      }
     }
     setSubmitting(true);
     try {
@@ -184,19 +189,19 @@ const AddBike = () => {
                 <input className={inp} placeholder="Street, Area, Landmark" value={form.address} onChange={set('address')} />
               </Field>
               <div />
-              <Field label="Available From">
-                <input className={inp} type="date" value={form.availableFrom} 
-                  min={new Date().toISOString().split('T')[0]} 
-                  onChange={set('availableFrom')} />
-              </Field>
-              <Field label="Available To">
-                <input className={inp} type="date" value={form.availableTo} 
-                  min={form.availableFrom ? new Date(new Date(form.availableFrom).getTime() + 86400000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]} 
-                  onChange={set('availableTo')} />
-                {form.availableFrom && form.availableTo && form.availableTo <= form.availableFrom && (
-                  <p className="text-red-500 text-xs mt-1 font-bold">End date must be after start date</p>
-                )}
-              </Field>
+              <DateTimePicker 
+                label="Available From" 
+                value={form.availableFrom} 
+                minDate={new Date().toISOString().split('T')[0]} 
+                onChange={(v) => setForm(f => ({ ...f, availableFrom: v }))} 
+              />
+              <DateTimePicker 
+                label="Available To" 
+                value={form.availableTo} 
+                minDate={form.availableFrom ? form.availableFrom.split(' ')[0] : new Date().toISOString().split('T')[0]} 
+                onChange={(v) => setForm(f => ({ ...f, availableTo: v }))} 
+                error={form.availableFrom && form.availableTo && (new Date(form.availableTo) < new Date(form.availableFrom)) ? 'End date/time cannot be before start date/time' : ''}
+              />
             </div>
           </Section>
 

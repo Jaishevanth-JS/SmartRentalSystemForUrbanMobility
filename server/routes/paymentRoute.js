@@ -8,16 +8,29 @@ const Booking = require('../models/Booking');
 router.post('/create-payment-intent', auth, async (req, res) => {
   try {
     const { totalAmount } = req.body;
-    const paymentIntent = await stripe.paymentIntents.create({
+    
+    if (!totalAmount || isNaN(totalAmount) || totalAmount <= 0) {
+      return res.status(400).json({ message: 'Invalid payment amount' });
+    }
+
+    const intentData = {
       amount: Math.round(totalAmount * 100), // amount in cents/paisa
       currency: 'inr',
       description: 'Bike Rental Payment',
+      automatic_payment_methods: { enabled: true },
       metadata: { integration_check: 'accept_a_payment' },
-    });
+    };
+
+    const paymentIntent = await stripe.paymentIntents.create(intentData);
+
+    if (!paymentIntent.client_secret) {
+      throw new Error('Stripe failed to generate client secret');
+    }
 
     res.json({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
-    res.status(500).json({ message: 'Stripe error: ' + error.message });
+    console.error('Create Payment Intent Error:', error);
+    res.status(500).json({ message: error.message || 'Error initializing payment' });
   }
 });
 

@@ -31,7 +31,12 @@ const VendorBookings = () => {
 
   const filtered = filter === 'all' ? bookings : bookings.filter(b => b.bookingStatus === filter);
 
-  const fmt = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const fmt = (d) => {
+    if (!d) return '—';
+    const date = new Date(d);
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + 
+           date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
 
   return (
     <VendorLayout title="Bookings">

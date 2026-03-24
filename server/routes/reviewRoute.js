@@ -44,4 +44,18 @@ router.get('/bike/:bikeId', async (req, res) => {
   }
 });
 
+// GET /recent — latest reviews for homepage testimonials
+router.get('/recent', async (req, res) => {
+  try {
+    const reviews = await Review.find({ rating: { $gte: 4 } })
+      .sort({ createdAt: -1 })
+      .limit(6)
+      .populate('userId', 'name profileImage');
+    res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error: ' + error.message });
+  }
+});
+
 module.exports = router;
+

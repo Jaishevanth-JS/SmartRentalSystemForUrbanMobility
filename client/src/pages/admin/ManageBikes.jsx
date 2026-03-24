@@ -3,6 +3,7 @@ import API from '../../api/axios';
 import AdminLayout from '../../components/AdminLayout';
 import { Bike, Search, CheckCircle, XCircle, X, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const ManageBikes = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ const ManageBikes = () => {
       setBikes(bikes.map(b => b._id === id ? { ...b, approvalStatus: status, isApproved: res.data.bike.isApproved } : b));
       window.dispatchEvent(new Event('bikeStatusChanged'));
     } catch (err) {
-      alert('Error updating bike status');
+      toast.error('Error updating bike status');
     }
   };
 

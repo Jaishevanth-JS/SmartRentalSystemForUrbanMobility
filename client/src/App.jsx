@@ -1,5 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { Elements } from '@stripe/react-stripe-js';
+import { stripePromise } from './api/stripe';
 
 // Public / User Pages
 import Login from './pages/Login';
@@ -44,6 +48,23 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-[#fdfaf6]">
+        <ToastContainer
+          position="top-right"
+          autoClose={3500}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+          toastStyle={{
+            borderRadius: '16px',
+            fontWeight: 600,
+            fontSize: '14px',
+          }}
+        />
         <Routes>
           {/* ── Public routes ─────────────────────────────────── */}
           <Route path="/"        element={<Home />} />
@@ -55,15 +76,17 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/terms"   element={<Terms />} />
 
-          {/* ── User protected routes ──────────────────────────── */}
-          <Route path="/dashboard"            element={<ProtectedRoute role="User"><UserDashboard /></ProtectedRoute>} />
-          <Route path="/my-bookings"          element={<ProtectedRoute role="User"><MyBookings /></ProtectedRoute>} />
-          <Route path="/payment"              element={<ProtectedRoute role="User"><Payment /></ProtectedRoute>} />
-          <Route path="/booking-confirmation" element={<ProtectedRoute role="User"><BookingConfirmation /></ProtectedRoute>} />
+          {/* ── Shared protected routes (any logged in user) ───── */}
+          <Route path="/my-bookings"          element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+          <Route path="/payment"              element={<ProtectedRoute><Elements stripe={stripePromise}><Payment /></Elements></ProtectedRoute>} />
+          <Route path="/booking-confirmation" element={<ProtectedRoute><BookingConfirmation /></ProtectedRoute>} />
           <Route path="/profile"              element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/profile/saved-payments"   element={<ProtectedRoute><SavedPayments /></ProtectedRoute>} />
           <Route path="/profile/privacy-security" element={<ProtectedRoute><PrivacySecurity /></ProtectedRoute>} />
           <Route path="/profile/notifications"    element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+
+          {/* ── User only route ──────────────────────────────── */}
+          <Route path="/dashboard"            element={<ProtectedRoute role="User"><UserDashboard /></ProtectedRoute>} />
 
           {/* ── Admin routes ──────────────────────────────────── */}
           <Route path="/admin"          element={<ProtectedRoute role="Admin"><AdminOverview /></ProtectedRoute>} />
@@ -84,8 +107,8 @@ function App() {
           <Route path="/vendor/profile"       element={<ProtectedRoute role="Vendor"><VendorProfile /></ProtectedRoute>} />
 
           {/* ── Redirects ─────────────────────────────────────── */}
-          <Route path="/home" element={<Navigate to="/" />} />
-          <Route path="*"     element={<Navigate to="/" />} />
+          <Route path="/home" element={<Navigate to="/" replace />} />
+          <Route path="*"     element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </Router>

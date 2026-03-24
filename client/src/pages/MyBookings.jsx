@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../api/axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import Spinner from '../components/Spinner';
-import { Calendar, MapPin, Star, MessageSquare, XCircle, Clock, CheckCircle, Package } from 'lucide-react';
+import { Calendar, MapPin, Star, MessageSquare, XCircle, Clock, CheckCircle, Package, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const ReviewModal = ({ isOpen, onClose, booking, onSubmit }) => {
@@ -73,7 +72,11 @@ const ReviewModal = ({ isOpen, onClose, booking, onSubmit }) => {
             disabled={submitting}
             className="w-full btn-brown py-4 text-lg font-bold flex items-center justify-center shadow-lg transform active:scale-95 transition-all"
           >
-            {submitting ? <Spinner /> : 'Submit Review'}
+            {submitting ? (
+              <div className="flex justify-center items-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
+              </div>
+            ) : 'Submit Review'}
           </button>
         </form>
       </div>
@@ -84,31 +87,35 @@ const ReviewModal = ({ isOpen, onClose, booking, onSubmit }) => {
 const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('upcoming');
     const [reviewBooking, setReviewBooking] = useState(null);
 
-    const fetchBookings = async () => {
-        setLoading(true);
+    const fetchBookings = useCallback(async (showLoader = true) => {
+        if (showLoader) setLoading(true);
+        setError(null);
         try {
             const res = await API.get('/bookings/my-bookings');
-            setBookings(res.data);
+            setBookings(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
-            toast.error('Failed to load bookings');
+            console.error('Failed to fetch bookings:', err);
+            setError('Could not load your bookings. Please try again.');
+            if (showLoader) toast.error('Failed to load bookings');
         } finally {
-            setLoading(false);
+            if (showLoader) setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchBookings();
-    }, []);
+    }, [fetchBookings]);
 
     const handleCancel = async (id) => {
         if (!window.confirm('Are you sure you want to cancel this booking?')) return;
         try {
             await API.put(`/bookings/${id}/cancel`);
             toast.success('Booking cancelled successfully');
-            fetchBookings();
+            await fetchBookings(false);
         } catch (err) {
             toast.error('Failed to cancel booking');
         }
@@ -117,9 +124,14 @@ const MyBookings = () => {
     const handleReviewSubmit = async (reviewData) => {
         try {
             await API.post('/reviews', reviewData);
-            toast.success('Review submitted! Thank you.');
-            fetchBookings();
+            // 1. Show success toast notification saying Review submitted successfully
+            toast.success('Review submitted successfully');
+            // 2. Close the review modal
+            setReviewBooking(null);
+            // 3. Immed refetch bookings state silently to update UI without unmounting
+            await fetchBookings(false);
         } catch (err) {
+            console.error('Submit review error:', err);
             throw err;
         }
     };
@@ -131,6 +143,14 @@ const MyBookings = () => {
         if (activeTab === 'cancelled') return b.bookingStatus === 'cancelled';
         return true;
     });
+
+    // Count per tab for badges
+    const counts = {
+        upcoming: bookings.filter(b => b.bookingStatus === 'upcoming').length,
+        active: bookings.filter(b => b.bookingStatus === 'active').length,
+        completed: bookings.filter(b => b.bookingStatus === 'completed').length,
+        cancelled: bookings.filter(b => b.bookingStatus === 'cancelled').length,
+    };
 
     return (
         <div className="min-h-screen bg-[#fdfaf6] flex flex-col">
@@ -150,15 +170,37 @@ const MyBookings = () => {
                         <button 
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`px-8 py-4 text-sm font-extrabold uppercase tracking-widest whitespace-nowrap transition-all border-b-4 ${activeTab === tab ? 'border-[#8b5e3c] text-[#8b5e3c] bg-[#8b5e3c]/5 rounded-t-xl' : 'border-transparent text-gray-400 hover:text-[#8b5e3c]'}`}
+                            className={`px-8 py-4 text-sm font-extrabold uppercase tracking-widest whitespace-nowrap transition-all border-b-4 flex items-center gap-2 ${activeTab === tab ? 'border-[#8b5e3c] text-[#8b5e3c] bg-[#8b5e3c]/5 rounded-t-xl' : 'border-transparent text-gray-400 hover:text-[#8b5e3c]'}`}
                         >
                             {tab}
+                            {counts[tab] > 0 && (
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full ${activeTab === tab ? 'bg-[#8b5e3c] text-white' : 'bg-gray-200 text-gray-500'}`}>
+                                    {counts[tab]}
+                                </span>
+                            )}
                         </button>
                     ))}
                 </div>
 
+                {/* CONTENT AREA */}
                 {loading ? (
-                    <Spinner />
+                    <div className="flex justify-center items-center py-32">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8b5e3c] mx-auto mb-4"></div>
+                            <p className="text-gray-400 font-bold text-sm">Loading your bookings...</p>
+                        </div>
+                    </div>
+                ) : error ? (
+                    <div className="bg-white border-2 border-dashed border-red-200 p-16 rounded-3xl text-center shadow-inner">
+                        <div className="h-24 w-24 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <AlertTriangle className="h-12 w-12 text-red-400" />
+                        </div>
+                        <h3 className="text-2xl font-black text-[#4a3224] mb-2">Something went wrong</h3>
+                        <p className="text-gray-500 mb-8">{error}</p>
+                        <button onClick={fetchBookings} className="btn-brown py-3 px-10 text-sm inline-flex items-center shadow-lg">
+                            Retry
+                        </button>
+                    </div>
                 ) : filteredBookings.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {filteredBookings.map((booking) => (
@@ -191,7 +233,7 @@ const MyBookings = () => {
                                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Rental Period</p>
                                                 <div className="flex items-center text-xs font-bold text-[#4a3224]">
                                                     <Calendar className="h-3 w-3 mr-2 text-[#8b5e3c]" />
-                                                    {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}
+                                                    {new Date(booking.startDate).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })} - {new Date(booking.endDate).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                                                 </div>
                                             </div>
                                             <div className="space-y-1 text-right">
@@ -209,7 +251,7 @@ const MyBookings = () => {
                                                     <XCircle className="h-4 w-4 mr-2" /> Cancel
                                                 </button>
                                             )}
-                                            {booking.bookingStatus === 'completed' && (
+                                            {booking.bookingStatus === 'completed' && !booking.hasReview && (
                                                 <button 
                                                     onClick={() => setReviewBooking(booking)}
                                                     className="flex-1 btn-brown px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center"
@@ -217,9 +259,11 @@ const MyBookings = () => {
                                                     <MessageSquare className="h-4 w-4 mr-2" /> Leave Review
                                                 </button>
                                             )}
-                                            <Link to={`/bikes/${booking.bikeId._id}`} className="flex-1 btn-outline-brown px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center">
-                                                 <Package className="h-4 w-4 mr-2" /> View Bike
-                                            </Link>
+                                            {booking.bikeId?._id && (
+                                                <Link to={`/bikes/${booking.bikeId._id}`} className="flex-1 btn-outline-brown px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center">
+                                                     <Package className="h-4 w-4 mr-2" /> View Bike
+                                                </Link>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

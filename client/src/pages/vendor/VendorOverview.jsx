@@ -153,7 +153,7 @@ const VendorOverview = () => {
                     <p className="font-black text-[#4a3224] text-sm">{b.userId?.name}</p>
                     <p className="text-xs text-gray-400 truncate">{b.bikeId?.brand} {b.bikeId?.model}</p>
                     <p className="text-xs text-gray-400">
-                      {new Date(b.startDate).toLocaleDateString()} → {new Date(b.endDate).toLocaleDateString()}
+                      {new Date(b.startDate).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })} → {new Date(b.endDate).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">

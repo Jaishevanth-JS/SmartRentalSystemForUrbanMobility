@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import BikeCard from '../components/BikeCard';
 import Spinner from '../components/Spinner';
+import DateTimePicker from '../components/DateTimePicker';
 import { Filter, Search, SlidersHorizontal, MapPin, IndianRupee, Calendar } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -135,27 +136,27 @@ const BrowseBikes = () => {
 
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Rental Period</label>
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                      <input 
-                        type="date" 
-                        name="startDate"
-                        className="w-full pl-9 pr-4 py-2 text-sm border border-[#e2d5c3] rounded-lg focus:outline-none focus:border-[#8b5e3c]"
-                        value={filters.startDate}
-                        onChange={handleFilterChange}
-                      />
-                    </div>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                      <input 
-                        type="date" 
-                        name="endDate"
-                        className="w-full pl-9 pr-4 py-2 text-sm border border-[#e2d5c3] rounded-lg focus:outline-none focus:border-[#8b5e3c]"
-                        value={filters.endDate}
-                        onChange={handleFilterChange}
-                      />
-                    </div>
+                  <div className="space-y-4">
+                    <DateTimePicker 
+                      label="Start Date"
+                      value={filters.startDate}
+                      minDate={new Date().toISOString().split('T')[0]}
+                      onChange={(v) => {
+                        const newFilters = { ...filters, startDate: v };
+                        setFilters(newFilters);
+                        setSearchParams(newFilters);
+                      }}
+                    />
+                    <DateTimePicker 
+                      label="End Date"
+                      value={filters.endDate}
+                      minDate={filters.startDate ? filters.startDate.split(' ')[0] : new Date().toISOString().split('T')[0]}
+                      onChange={(v) => {
+                        const newFilters = { ...filters, endDate: v };
+                        setFilters(newFilters);
+                        setSearchParams(newFilters);
+                      }}
+                    />
                   </div>
                 </div>
               </div>

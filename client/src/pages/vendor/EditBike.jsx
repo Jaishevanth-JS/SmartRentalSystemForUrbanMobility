@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import API from '../../api/axios';
 import VendorLayout from '../../components/VendorLayout';
+import DateTimePicker from '../../components/DateTimePicker';
 import { Save, ArrowLeft } from 'lucide-react';
 
 const BIKE_TYPES = ['Scooter','Sports','Cruiser','Commuter','Adventure','Electric','Classic','Other'];
@@ -74,8 +75,8 @@ const EditBike = () => {
             city:         bike.city || '',
             state:        bike.state || '',
             address:      bike.address || '',
-            availableFrom: bike.availableFrom ? bike.availableFrom.split('T')[0] : '',
-            availableTo:   bike.availableTo   ? bike.availableTo.split('T')[0]   : '',
+            availableFrom: bike.availableFrom ? (bike.availableFrom.includes(' ') ? bike.availableFrom : bike.availableFrom.split('T')[0] + ' 09:00 AM') : '',
+            availableTo:   bike.availableTo   ? (bike.availableTo.includes(' ')   ? bike.availableTo   : bike.availableTo.split('T')[0]   + ' 06:00 PM') : '',
             images:        (bike.images || []).join('\n'),
             isAvailable:   bike.isAvailable,
           });
@@ -94,6 +95,11 @@ const EditBike = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    if (form.availableFrom && form.availableTo && (new Date(form.availableTo) < new Date(form.availableFrom))) {
+        showToast('End date/time must be after start date/time', 'error');
+        setSubmitting(false);
+        return;
+    }
     try {
       const payload = {
         ...form,
@@ -173,8 +179,19 @@ const EditBike = () => {
               <Field label="State"><input className={inp} value={form.state} onChange={set('state')} /></Field>
               <Field label="Address"><input className={inp} value={form.address} onChange={set('address')} /></Field>
               <div />
-              <Field label="Available From"><input className={inp} type="date" value={form.availableFrom} onChange={set('availableFrom')} /></Field>
-              <Field label="Available To"><input className={inp} type="date" value={form.availableTo} onChange={set('availableTo')} /></Field>
+              <DateTimePicker 
+                label="Available From" 
+                value={form.availableFrom} 
+                minDate={new Date().toISOString().split('T')[0]} 
+                onChange={(v) => setForm(f => ({ ...f, availableFrom: v }))} 
+              />
+              <DateTimePicker 
+                label="Available To" 
+                value={form.availableTo} 
+                minDate={form.availableFrom ? form.availableFrom.split(' ')[0] : new Date().toISOString().split('T')[0]} 
+                onChange={(v) => setForm(f => ({ ...f, availableTo: v }))} 
+                error={form.availableFrom && form.availableTo && (new Date(form.availableTo) < new Date(form.availableFrom)) ? 'End date/time cannot be before start date/time' : ''}
+              />
             </div>
             <Field label="Availability Status">
               <label className="flex items-center gap-3 cursor-pointer mt-1">

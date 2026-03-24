@@ -3,6 +3,7 @@ import API from '../../api/axios';
 import AdminLayout from '../../components/AdminLayout';
 import { Bike, Search, CheckCircle, XCircle, Clock, X, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const PendingApprovals = () => {
   const navigate = useNavigate();
@@ -28,13 +29,12 @@ const PendingApprovals = () => {
 
   const handleStatus = async (id, status) => {
     try {
-      if (window.confirm(`Are you sure you want to ${status.toLowerCase()} this listing?`)) {
-        await API.put(`/admin/bikes/${id}/approve`, { status });
-        setBikes(bikes.filter(b => b._id !== id));
-        window.dispatchEvent(new Event('bikeStatusChanged'));
-      }
+      await API.put(`/admin/bikes/${id}/approve`, { status });
+      setBikes(bikes.filter(b => b._id !== id));
+      window.dispatchEvent(new Event('bikeStatusChanged'));
+      toast.success(`Bike ${status.toLowerCase()} successfully!`);
     } catch (err) {
-      alert('Error updating bike status');
+      toast.error('Error updating bike status');
     }
   };
 

@@ -16,7 +16,16 @@ const vendorOnly = (req, res, next) => {
 router.get('/', async (req, res) => {
   try {
     const { city, bikeType, priceMin, priceMax, startDate, endDate } = req.query;
-    let query = { isApproved: true, isAvailable: true };
+    const now = new Date();
+    let query = { 
+      isApproved: true, 
+      isAvailable: true,
+      // Only show bikes whose availability window covers today
+      $or: [
+        { availableFrom: { $exists: false } },  // no window set = always available
+        { availableFrom: { $lte: now }, availableTo: { $gte: now } }
+      ]
+    };
 
     if (city) query.city = new RegExp(city, 'i');
     if (bikeType) query.bikeType = bikeType;

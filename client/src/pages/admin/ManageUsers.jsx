@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import API from '../../api/axios';
 import AdminLayout from '../../components/AdminLayout';
 import { Users, Search, Ban, CheckCircle } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const ManageUsers = () => {
   const [users, setUsers] = useState([]);
@@ -25,13 +26,12 @@ const ManageUsers = () => {
 
   const toggleBlock = async (id, isBlocked) => {
     try {
-      if (window.confirm(`Are you sure you want to ${isBlocked ? 'unblock' : 'block'} this user?`)) {
-        const res = await API.put(`/admin/users/${id}/block`);
-        setUsers(users.map(u => u._id === id ? { ...u, isBlocked: res.data.isBlocked } : u));
-      }
+      const res = await API.put(`/admin/users/${id}/block`);
+      setUsers(users.map(u => u._id === id ? { ...u, isBlocked: res.data.isBlocked } : u));
+      toast.success(`User ${res.data.isBlocked ? 'blocked' : 'unblocked'} successfully`);
     } catch (err) {
       console.error(err);
-      alert('Error updating user status');
+      toast.error('Error updating user status');
     }
   };
 
